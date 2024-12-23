@@ -35,7 +35,7 @@ if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
 
 
-def get_stream(chat_id: str, message: str):
+def streaming(chat_id: str, message: str):
     with httpx.Client() as client:
         with client.stream(
             "POST",
@@ -50,7 +50,7 @@ def get_stream(chat_id: str, message: str):
 if prompt:
     # Display assistant response in chat message container
     with st.chat_message("assistant"):
-        stream = get_stream("gwerage", prompt)
+        stream = streaming("gwerage", prompt)
         response = st.write_stream(stream)
     # Add assistant response to chat history
     st.session_state.messages.append({"role": "assistant", "content": response})

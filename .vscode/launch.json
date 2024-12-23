@@ -24,6 +24,16 @@
                 "run",
                 "streamlit/main.py"
             ]
-        }
+        },
+        {
+            "name": "Gradio",
+            "type": "debugpy",
+            "request": "launch",
+            "program": ".venv/bin/gradio",
+            "args": [
+                "gradio/main.py"
+            ],
+            "console": "integratedTerminal"
+        },
     ]
 }
