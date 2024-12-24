@@ -1,7 +1,21 @@
 import streamlit as st
 import httpx
 
+from app.database.database import Chat
+
+client = httpx.Client(base_url="http://localhost:8000")
+
 st.title("Chat App")
+
+
+if "chats" not in st.session_state:
+    chats = client.get("/chats").json()
+    st.session_state.chats = [Chat.model_validate(chat) for chat in chats]
+
+with st.sidebar:
+    for chat in st.session_state.chats:
+        st.button(chat.title, key=chat.id, use_container_width=True)
+
 
 CSS = """\
 <style>

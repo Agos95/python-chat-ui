@@ -17,7 +17,7 @@ router = APIRouter(prefix="/chats", tags=["chat"])
 LETTERS = list(string.ascii_letters + string.digits)
 
 
-@router.get("/")
+@router.get("")
 async def get_chats(session: Session = Depends(get_session)) -> list[Chat]:
     chats = session.exec(select(Chat)).all()
     return chats
