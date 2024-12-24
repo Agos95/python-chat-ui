@@ -33,7 +33,7 @@ class Chat(Base, table=True):
         back_populates="chat",
         cascade_delete=True,
         sa_relationship_kwargs={
-            "lazy": "subquery",
+            # "lazy": "subquery",
             "order_by": "asc(ChatMessage.create_time)",
         },
     )
@@ -53,6 +53,11 @@ engine = create_engine(SQLITE_URL, echo=True)
 
 def init_db():
     SQLModel.metadata.create_all(engine)
+
+
+def get_session():
+    with Session(engine) as session:
+        yield session
 
 
 def populate_db():

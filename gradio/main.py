@@ -8,7 +8,7 @@ def streaming(message: str, hist: list[dict[str, str]]):
     with httpx.Client() as client:
         with client.stream(
             "POST",
-            f"http://localhost:8000/chats/{chat_id}/chat",
+            f"http://localhost:8000/chats/{chat_id}",
             json={"message": message},
         ) as r:
             for chunk in r.iter_text():
