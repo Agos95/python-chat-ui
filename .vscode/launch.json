@@ -35,5 +35,12 @@
             ],
             "console": "integratedTerminal"
         },
+        {
+            "name": "Create DB",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "app/database/database.py",
+            "console": "integratedTerminal"
+        },
     ]
 }
