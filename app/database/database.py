@@ -20,7 +20,7 @@ class ChatMessageRole(StrEnum):
 
 
 class Base(SQLModel, table=False):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex, primary_key=True)
     create_time: datetime = Field(default_factory=utc_now, nullable=False)
     update_time: datetime = Field(
         default_factory=utc_now, nullable=False, sa_column_kwargs={"onupdate": utc_now}
@@ -33,16 +33,14 @@ class Chat(Base, table=True):
         back_populates="chat",
         cascade_delete=True,
         sa_relationship_kwargs={
-            # "lazy": "subquery",
+            "lazy": "subquery",
             "order_by": "asc(ChatMessage.create_time)",
         },
     )
 
 
 class ChatMessage(Base, table=True):
-    chat_id: uuid.UUID = Field(
-        nullable=False, foreign_key="chat.id", ondelete="CASCADE"
-    )
+    chat_id: str = Field(nullable=False, foreign_key="chat.id", ondelete="CASCADE")
     chat: Chat = Relationship(back_populates="history")
     role: ChatMessageRole = Field(nullable=False)
     content: str | None = Field(None)

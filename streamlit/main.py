@@ -10,11 +10,31 @@ st.title("Chat App")
 
 if "chats" not in st.session_state:
     chats = client.get("/chats").json()
-    st.session_state.chats = [Chat.model_validate(chat) for chat in chats]
+    chats = [Chat.model_validate(chat) for chat in chats]
+    st.session_state.chats = {chat.id: chat for chat in chats}
+    st.session_state.chat = None
+    st.session_state.history = []
+
+
+def select_chat(chat_id=None):
+    if chat_id is not None:
+        chat = client.get(f"/chats/{chat_id}").json()
+        st.session_state.chat = st.session_state.chats["chat_id"]
+    else:
+        st.session_state.chat = None
+        st.session_state.history = []
+    print(st.session_state.current_chat)
+    return
+
 
 with st.sidebar:
-    for chat in st.session_state.chats:
-        st.button(chat.title, key=chat.id, use_container_width=True)
+    for chat in st.session_state.chats.values():
+        st.button(
+            chat.title,
+            use_container_width=True,
+            on_click=select_chat,
+            kwargs={"chat_id": chat.id},
+        )
 
 
 CSS = """\
@@ -30,14 +50,13 @@ CSS = """\
 
 st.html(CSS)
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Display chat messages from history on app rerun
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+if st.session_state.chat is not None:
+    chat: Chat = st.session_state.chat
+    print(chat)
+    for message in chat.history:
+        # Display chat messages from history on app rerun
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
 # React to user input
 prompt = st.chat_input("How can I help you?")
