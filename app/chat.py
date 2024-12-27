@@ -19,22 +19,37 @@ LETTERS = list(string.ascii_letters + string.digits)
 
 @router.get("")
 async def get_chats(session: Session = Depends(get_session)) -> list[Chat]:
+    """Get list of Chats."""
     chats = session.exec(select(Chat)).all()
     return chats
 
 
 @router.get("/{chat_id}")
 async def get_chat(chat_id: str, session: Session = Depends(get_session)) -> Chat:
+    """Get single chat (without messages)"""
     chat = session.exec(select(Chat).where(Chat.id == chat_id)).one()
     return chat
 
 
 @router.delete("/{chat_id}")
 async def delete_chat(chat_id: str, session: Session = Depends(get_session)):
+    """Delete chat"""
     chat = session.exec(select(Chat).where(Chat.id == chat_id)).one()
     session.delete(chat)
     session.commit()
     return
+
+
+@router.get("/{chat_id}/messages", tags=["chat", "message"])
+async def get_chat_messages(
+    chat_id: str, session: Session = Depends(get_session)
+) -> list[ChatMessage]:
+    messages = session.exec(
+        select(ChatMessage)
+        .where(ChatMessage.chat_id == chat_id)
+        .order_by(ChatMessage.create_time)
+    ).all()
+    return messages
 
 
 @router.post("/{chat_id}")

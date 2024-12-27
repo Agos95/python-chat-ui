@@ -18,12 +18,15 @@ if "chats" not in st.session_state:
 
 def select_chat(chat_id=None):
     if chat_id is not None:
-        chat = client.get(f"/chats/{chat_id}").json()
-        st.session_state.chat = st.session_state.chats["chat_id"]
+        st.session_state.chat = st.session_state.chats[chat_id]
+        history = client.get(f"/chats/{chat_id}/messages").json()
+        for message in history:
+            if message["role"] == "ai":
+                message["role"] = "assistant"
+        st.session_state.history = history
     else:
         st.session_state.chat = None
         st.session_state.history = []
-    print(st.session_state.current_chat)
     return
 
 
@@ -43,17 +46,15 @@ CSS = """\
     display: flex;
     flex-direction: row-reverse;
     align-itmes: end;
-    text-align: right;
+    text-align: left;
 }
 </style>
 """
 
 st.html(CSS)
 
-if st.session_state.chat is not None:
-    chat: Chat = st.session_state.chat
-    print(chat)
-    for message in chat.history:
+if st.session_state.history is not None:
+    for message in st.session_state.history:
         # Display chat messages from history on app rerun
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
@@ -83,7 +84,7 @@ def streaming(chat_id: str, message: str):
 if prompt:
     # Display assistant response in chat message container
     with st.chat_message("assistant"):
-        stream = streaming("gwerage", prompt)
+        stream = streaming(st.session_state.chat.id, prompt)
         response = st.write_stream(stream)
     # Add assistant response to chat history
     st.session_state.messages.append({"role": "assistant", "content": response})
