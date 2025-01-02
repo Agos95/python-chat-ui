@@ -1,14 +1,14 @@
 import asyncio
-import string
-import random
 import logging
+import random
+import string
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
-from .schema import ChatMessageSchema
 from .database import database as db
+from .schema import ChatMessageSchema
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -21,7 +21,7 @@ async def get_response(message: str, chat_id: str, session: Session):
     # here you would call your LLM to get the response
     response = ""
     await asyncio.sleep(2)
-    for _ in range(random.randint(50, 100)):
+    for _ in range(random.randint(20, 100)):
         stream = "".join(random.choices(LETTERS, k=5))
         # logger.info(f"{response}")
         response += stream
@@ -53,19 +53,6 @@ async def get_chat(chat_id: str, session: Session = Depends(db.get_session)) -> 
     return chat
 
 
-@router.get("/{chat_id}/messages", tags=["chat", "message"])
-async def get_chat_messages(
-    chat_id: str, session: Session = Depends(db.get_session)
-) -> list[db.ChatMessage]:
-    """Get chat messages"""
-    messages = session.exec(
-        select(db.ChatMessage)
-        .where(db.ChatMessage.chat_id == chat_id)
-        .order_by(db.ChatMessage.create_time)
-    ).all()
-    return messages
-
-
 @router.delete("/{chat_id}")
 async def delete_chat(chat_id: str, session: Session = Depends(db.get_session)):
     """Delete chat"""
@@ -84,11 +71,11 @@ async def chat(
         [
             chunk
             for chunk in get_response(
-                message=message.message, chat_id=chat_id, session=session
+                message=message.content, chat_id=chat_id, session=session
             )
         ]
     )
-    return response
+    return ChatMessageSchema(content=response)
 
 
 @router.post("/{chat_id}/stream")
@@ -98,9 +85,22 @@ async def stream(
     """Post a message to chat and get the response as stream"""
 
     logger.info(f"Streaming chat {chat_id}")
-    logger.info(f"Message: {message.message}")
+    logger.info(f"Message: {message.content}")
 
     return StreamingResponse(
-        get_response(message=message.message, chat_id=chat_id, session=session),
+        get_response(message=message.content, chat_id=chat_id, session=session),
         media_type="text/event-stream",
     )
+
+
+@router.get("/{chat_id}/messages", tags=["message"])
+async def get_messages(
+    chat_id: str, session: Session = Depends(db.get_session)
+) -> list[db.ChatMessage]:
+    """Get chat messages"""
+    messages = session.exec(
+        select(db.ChatMessage)
+        .where(db.ChatMessage.chat_id == chat_id)
+        .order_by(db.ChatMessage.create_time)
+    ).all()
+    return messages
