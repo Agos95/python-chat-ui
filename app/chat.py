@@ -46,6 +46,17 @@ async def get_chats(session: Session = Depends(db.get_session)) -> list[db.Chat]
     return chats
 
 
+@router.post("")
+async def create_chat(
+    title: str | None = None, session: Session = Depends(db.get_session)
+) -> db.Chat:
+    """Get list of Chats."""
+    chat = db.Chat(title=title)
+    session.add(chat)
+    session.commit()
+    return chat
+
+
 @router.get("/{chat_id}")
 async def get_chat(chat_id: str, session: Session = Depends(db.get_session)) -> db.Chat:
     """Get single chat (without messages)"""
