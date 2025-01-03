@@ -8,7 +8,12 @@ from app.database import database as db
 # == STREAMLIT ==
 # ===============
 
-title = st.title("Chat App")
+st.set_page_config(page_title="Chat App", page_icon=":robot_face:", layout="centered")
+
+if "title" not in st.session_state:
+    st.session_state.title = "Chat App"
+
+st.subheader(st.session_state.title, divider="red")
 
 
 if "chats" not in st.session_state:

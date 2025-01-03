@@ -15,8 +15,7 @@ client = get_httpx_client()
 
 
 def create_chat() -> None:
-    response = client.post("/chats")  # .json()
-    response = response.json()
+    response = client.post("/chats").json()
     chat = db.Chat.model_validate(response)
     st.session_state.chats = {chat.id: chat} | st.session_state.chats
     select_chat(chat.id)
@@ -37,9 +36,11 @@ def select_chat(chat_id=None) -> None:
         st.session_state.chat = st.session_state.chats[chat_id]
         history = client.get(f"/chats/{chat_id}/messages").json()
         st.session_state.history = [db.ChatMessage.model_validate(h) for h in history]
+        st.session_state.title = st.session_state.chat.title or "New Chat"
     else:
         st.session_state.chat = None
         st.session_state.history = None
+        st.session_state.title = "Chat App"
     return
 
 
@@ -48,7 +49,6 @@ def render_chat() -> None:
     chat = st.session_state.chat is not None
     if chat is None:
         return
-    # title.title(f"{st.session_state.chat.title}")
     if st.session_state.history is not None:
         message: db.ChatMessage
         for message in st.session_state.history:

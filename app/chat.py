@@ -54,6 +54,7 @@ async def create_chat(
     chat = db.Chat(title=title)
     session.add(chat)
     session.commit()
+    session.refresh(chat)
     return chat
 
 
