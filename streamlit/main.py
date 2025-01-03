@@ -15,13 +15,16 @@ def get_httpx_client():
 client = get_httpx_client()
 
 
-def get_chats():
+def get_chats() -> None:
+    """Get chats from db and store in streamlit session state"""
     chats = client.get("/chats").json()
     chats = [db.Chat.model_validate(chat) for chat in chats]
     st.session_state.chats = {chat.id: chat for chat in chats}
+    return
 
 
-def select_chat(chat_id=None):
+def select_chat(chat_id=None) -> None:
+    """Update streamlit session state with selected chat details"""
     if chat_id is not None:
         st.session_state.chat = st.session_state.chats[chat_id]
         history = client.get(f"/chats/{chat_id}/messages").json()
@@ -32,7 +35,8 @@ def select_chat(chat_id=None):
     return
 
 
-def render_chat():
+def render_chat() -> None:
+    """Render the selected chat in streamlit session state"""
     chat = st.session_state.chat is not None
     if chat is None:
         return
@@ -41,14 +45,19 @@ def render_chat():
         message: db.ChatMessage
         for message in st.session_state.history:
             render_message(message)
+    return
 
 
-def delete_chat(chat_id: str):
+def delete_chat(chat_id: str) -> None:
+    """Delete the chat from db and refresh streamlit session state"""
     client.delete(f"chats/{chat_id}")
-    select_chat(st.session_state.chat.id)
+    get_chats()
+    select_chat(None)
+    return
 
 
-def render_message(message: db.ChatMessage | schema.ChatMessagePlaceholder):
+def render_message(message: db.ChatMessage | schema.ChatMessagePlaceholder) -> None:
+    """Display a single chat message (either str or Generator)"""
     # Display chat messages from history on app rerun
     role = message.role
     col_message, col_delete = st.columns([0.975, 0.025], vertical_alignment="bottom")
@@ -75,23 +84,30 @@ def render_message(message: db.ChatMessage | schema.ChatMessagePlaceholder):
             type="tertiary",
             **callback_kwargs,
         )
+    return
 
 
-def delete_message(message_id: str):
+def delete_message(message_id: str) -> None:
+    """Delete a single message from db and refresh streamlit state session"""
     client.delete(f"messages/{message_id}")
     select_chat(st.session_state.chat.id)
+    return None
 
 
-# STREAMLIT
+# ===============
+# == STREAMLIT ==
+# ===============
 
 title = st.title("Chat App")
 
 
 if "chats" not in st.session_state:
     get_chats()
-    st.session_state.chat = None
-    st.session_state.history = None
+    select_chat(None)
 
+
+# -- Sidebar --
+# -------------
 
 with st.sidebar:
     for chat in st.session_state.chats.values():
@@ -109,26 +125,15 @@ with st.sidebar:
                 "",
                 help="Delete",
                 on_click=delete_chat,
-                kwargs={"message_id": chat.id},
+                kwargs={"chat_id": chat.id},
                 icon=":material/delete:",
                 key=f"delete_{chat.id}",
                 use_container_width=True,
                 type="tertiary",
             )
 
-
-CSS = """\
-<style>
-.stChatMessage:has([data-testid="stChatMessageAvatarUser"]) {
-    display: flex;
-    flex-direction: row-reverse;
-    align-itmes: end;
-    text-align: left;
-}
-</style>
-"""
-
-# st.html(CSS)
+# -- Main window --
+# -----------------
 
 is_chat_selected = st.session_state.chat is not None
 
