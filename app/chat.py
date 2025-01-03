@@ -42,7 +42,7 @@ async def get_response(message: str, chat_id: str, session: Session):
 @router.get("")
 async def get_chats(session: Session = Depends(db.get_session)) -> list[db.Chat]:
     """Get list of Chats."""
-    chats = session.exec(select(db.Chat)).all()
+    chats = session.exec(select(db.Chat).order_by(db.Chat.create_time.desc())).all()
     return chats
 
 
@@ -65,9 +65,10 @@ async def get_chat(chat_id: str, session: Session = Depends(db.get_session)) -> 
 
 
 @router.delete("/{chat_id}")
-async def delete_chat(chat_id: str, session: Session = Depends(db.get_session)):
+def delete_chat(chat_id: str, session: Session = Depends(db.get_session)):
     """Delete chat"""
-    chat = session.exec(select(db.Chat).where(db.Chat.id == chat_id)).one()
+    chat = session.exec(select(db.Chat).where(db.Chat.id == chat_id))
+    chat = chat.one()
     session.delete(chat)
     session.commit()
     return

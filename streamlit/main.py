@@ -1,98 +1,8 @@
-# from http_client import client
-import httpx
-from uuid import uuid4
+import chat as ch
+import schema
 
 import streamlit as st
 from app.database import database as db
-import schema
-
-
-@st.cache_resource
-def get_httpx_client():
-    return httpx.Client(base_url="http://localhost:8000")
-
-
-client = get_httpx_client()
-
-
-def get_chats() -> None:
-    """Get chats from db and store in streamlit session state"""
-    chats = client.get("/chats").json()
-    chats = [db.Chat.model_validate(chat) for chat in chats]
-    st.session_state.chats = {chat.id: chat for chat in chats}
-    return
-
-
-def select_chat(chat_id=None) -> None:
-    """Update streamlit session state with selected chat details"""
-    if chat_id is not None:
-        st.session_state.chat = st.session_state.chats[chat_id]
-        history = client.get(f"/chats/{chat_id}/messages").json()
-        st.session_state.history = [db.ChatMessage.model_validate(h) for h in history]
-    else:
-        st.session_state.chat = None
-        st.session_state.history = None
-    return
-
-
-def render_chat() -> None:
-    """Render the selected chat in streamlit session state"""
-    chat = st.session_state.chat is not None
-    if chat is None:
-        return
-    title.title(f"{st.session_state.chat.title}")
-    if st.session_state.history is not None:
-        message: db.ChatMessage
-        for message in st.session_state.history:
-            render_message(message)
-    return
-
-
-def delete_chat(chat_id: str) -> None:
-    """Delete the chat from db and refresh streamlit session state"""
-    client.delete(f"chats/{chat_id}")
-    get_chats()
-    select_chat(None)
-    return
-
-
-def render_message(message: db.ChatMessage | schema.ChatMessagePlaceholder) -> None:
-    """Display a single chat message (either str or Generator)"""
-    # Display chat messages from history on app rerun
-    role = message.role
-    col_message, col_delete = st.columns([0.975, 0.025], vertical_alignment="bottom")
-    with col_message:
-        with st.chat_message(role):
-            if isinstance(message.content, str):
-                st.markdown(message.content)
-            else:
-                st.write_stream(message.content)
-    with col_delete:
-        if isinstance(message, schema.ChatMessagePlaceholder):
-            callback_kwargs = {}
-        else:
-            callback_kwargs = {
-                "on_click": delete_message,
-                "kwargs": {"message_id": message.id},
-            }
-        st.button(
-            "",
-            help="Delete",
-            icon=":material/delete:",
-            key=f"delete_{message.id}_{uuid4().hex}",
-            use_container_width=True,
-            type="tertiary",
-            **callback_kwargs,
-        )
-    return
-
-
-def delete_message(message_id: str) -> None:
-    """Delete a single message from db and refresh streamlit state session"""
-    client.delete(f"messages/{message_id}")
-    select_chat(st.session_state.chat.id)
-    return None
-
 
 # ===============
 # == STREAMLIT ==
@@ -102,30 +12,37 @@ title = st.title("Chat App")
 
 
 if "chats" not in st.session_state:
-    get_chats()
-    select_chat(None)
+    ch.get_chats()
+    ch.select_chat(None)
 
 
 # -- Sidebar --
 # -------------
 
 with st.sidebar:
-    st.button("New", help="New Chat", icon=":material/chat:")
+    st.button(
+        "New Chat",
+        help="New",
+        icon=":material/add:",
+        on_click=ch.create_chat,
+        use_container_width=False,
+        type="tertiary",
+    )
     for chat in st.session_state.chats.values():
-        col_title, col_delete = st.columns([0.9, 0.1])
+        col_title, col_delete = st.columns([0.975, 0.02])
         with col_title:
             st.button(
-                chat.title,
+                chat.title or "New Chat",
                 type="secondary",
                 use_container_width=True,
-                on_click=select_chat,
+                on_click=ch.select_chat,
                 kwargs={"chat_id": chat.id},
             )
         with col_delete:
             st.button(
                 "",
                 help="Delete",
-                on_click=delete_chat,
+                on_click=ch.delete_chat,
                 kwargs={"chat_id": chat.id},
                 icon=":material/delete:",
                 key=f"delete_{chat.id}",
@@ -140,21 +57,11 @@ is_chat_selected = st.session_state.chat is not None
 
 
 if is_chat_selected:
-    render_chat()
+    ch.render_chat()
     prompt = st.chat_input()
 
 else:
     prompt = st.chat_input("Select a chat", disabled=True)
-
-
-def streaming(chat_id: str, message: str):
-    with client.stream(
-        "POST",
-        f"/chats/{chat_id}/stream",
-        json={"content": message},
-    ) as r:
-        for chunk in r.iter_text():
-            yield chunk
 
 
 # React to user input
@@ -167,21 +74,21 @@ if prompt:
         user_message = schema.ChatMessagePlaceholder(
             content=prompt, role=db.ChatMessageRole.HUMAN
         )
-        render_message(user_message)
+        ch.render_message(user_message)
         # Response
         ai_message = schema.ChatMessagePlaceholder(
-            content=streaming(st.session_state.chat.id, prompt),
+            content=ch.streaming(st.session_state.chat.id, prompt),
             role=db.ChatMessageRole.AI,
         )
-        render_message(ai_message)
+        ch.render_message(ai_message)
 
     # now query again the db to get the actual list of messages
     # and rerender the last two messages, with the correct ids
     # TODO: add an endpoint to get only the last two messages
     # instead of the whole history from the db
-    select_chat(st.session_state.chat.id)
+    ch.select_chat(st.session_state.chat.id)
     for message in st.session_state.history[-2:]:
-        render_message(message)
+        ch.render_message(message)
     # now remove the placeholder container
     # (if you put it before the for loop, some weird scroll happens in the ui)
     placeholder.empty()
