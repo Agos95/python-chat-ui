@@ -110,6 +110,7 @@ if "chats" not in st.session_state:
 # -------------
 
 with st.sidebar:
+    st.button("New", help="New Chat", icon=":material/chat:")
     for chat in st.session_state.chats.values():
         col_title, col_delete = st.columns([0.9, 0.1])
         with col_title:

@@ -16,4 +16,4 @@ async def home() -> RedirectResponse:
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, reload=True)
+    uvicorn.run(app, reload=True, reload_excludes=["streamlit/*"])

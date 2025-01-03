@@ -11,9 +11,11 @@
             "module": "uvicorn",
             "args": [
                 "app.main:app",
-                "--reload"
+                "--reload",
+                "--reload-exclude",
+                "streamlit/*",
             ],
-            "jinja": true
+            "jinja": true,
         },
         {
             "name": "Streamlit",
@@ -22,7 +24,9 @@
             "module": "streamlit",
             "args": [
                 "run",
-                "streamlit/main.py"
+                "streamlit/main.py",
+                "--server.runOnSave",
+                "true"
             ]
         },
         {
