@@ -1,14 +1,19 @@
-import chat as ch
-import schema
-
 import streamlit as st
-from app.database import database as db
+
+st.set_page_config(page_title="Chat App", page_icon=":robot_face:", layout="centered")
+
+import chat as ch  # noqa: E402
+import schema  # noqa: E402
+
+from app.database import database as db  # noqa: E402
 
 # ===============
 # == STREAMLIT ==
 # ===============
 
-st.set_page_config(page_title="Chat App", page_icon=":robot_face:", layout="centered")
+# get primary color
+ST_PRIMARY_COLOR = st.get_option("theme.primaryColor")
+
 
 if "title" not in st.session_state:
     st.session_state.title = "Chat App"
@@ -33,27 +38,49 @@ with st.sidebar:
         use_container_width=False,
         type="tertiary",
     )
-    for chat in st.session_state.chats.values():
-        col_title, col_delete = st.columns([0.975, 0.02])
-        with col_title:
-            st.button(
-                chat.title or "New Chat",
-                type="secondary",
-                use_container_width=True,
-                on_click=ch.select_chat,
-                kwargs={"chat_id": chat.id},
-            )
-        with col_delete:
-            st.button(
-                "",
-                help="Delete",
-                on_click=ch.delete_chat,
-                kwargs={"chat_id": chat.id},
-                icon=":material/delete:",
-                key=f"delete_{chat.id}",
-                use_container_width=True,
-                type="tertiary",
-            )
+    with st.container(key="chat-list"):
+        for chat in st.session_state.chats.values():
+            col_title, col_delete = st.columns([0.975, 0.02])
+            with col_title:
+                st.button(
+                    chat.title or "New Chat",
+                    type="tertiary",
+                    use_container_width=True,
+                    on_click=ch.select_chat,
+                    kwargs={"chat_id": chat.id},
+                )
+            with col_delete:
+                st.button(
+                    "",
+                    help="Delete",
+                    on_click=ch.delete_chat,
+                    kwargs={"chat_id": chat.id},
+                    icon=":material/delete:",
+                    key=f"delete_{chat.id}",
+                    use_container_width=True,
+                    type="tertiary",
+                )
+
+# custom CSS for chat list
+st.html(f"""
+    <style>
+        /* reduce gap between buttons */
+        .st-key-chat-list {{
+            gap: .25rem
+        }}
+
+        /* don't use rounded corners */ 
+        .st-key-chat-list button {{
+            border-radius: 0px
+        }}
+
+        /* color and add border when chat is selected */
+        .st-key-chat-list button:focus {{
+            color: {ST_PRIMARY_COLOR};
+            border-bottom: 1px solid;
+        }}
+    </style>
+    """)
 
 # -- Main window --
 # -----------------
