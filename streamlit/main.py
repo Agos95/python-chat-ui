@@ -28,7 +28,7 @@ if "chats" not in st.session_state:
 
 # -- Sidebar --
 # -------------
-
+CHAT_LIST_KEY = "chat-list"
 with st.sidebar:
     st.button(
         "New Chat",
@@ -38,7 +38,7 @@ with st.sidebar:
         use_container_width=False,
         type="tertiary",
     )
-    with st.container(key="chat-list"):
+    with st.container(key=CHAT_LIST_KEY):
         for chat in st.session_state.chats.values():
             col_title, col_delete = st.columns([0.975, 0.02])
             with col_title:
@@ -65,17 +65,17 @@ with st.sidebar:
 st.html(f"""
     <style>
         /* reduce gap between buttons */
-        .st-key-chat-list {{
+        .st-key-{CHAT_LIST_KEY} {{
             gap: .25rem
         }}
 
         /* don't use rounded corners */ 
-        .st-key-chat-list button {{
+        .st-key-{CHAT_LIST_KEY} button {{
             border-radius: 0px
         }}
 
         /* color and add border when chat is selected */
-        .st-key-chat-list button:focus {{
+        .st-key-{CHAT_LIST_KEY} button:focus {{
             color: {ST_PRIMARY_COLOR};
             border-bottom: 1px solid;
         }}

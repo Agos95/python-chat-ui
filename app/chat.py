@@ -2,13 +2,13 @@ import asyncio
 import logging
 import random
 import string
-
-from fastapi import APIRouter, Depends
+from typing import Annotated
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
 from .database import database as db
-from .schema import ChatMessageSchema
+from .schema import ChatMessageSchema, PaginationParameters
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -40,9 +40,17 @@ async def get_response(message: str, chat_id: str, session: Session):
 
 
 @router.get("")
-async def get_chats(session: Session = Depends(db.get_session)) -> list[db.Chat]:
+async def get_chats(
+    pagination: Annotated[PaginationParameters, Query()],
+    session: Session = Depends(db.get_session),
+) -> list[db.Chat]:
     """Get list of Chats."""
-    chats = session.exec(select(db.Chat).order_by(db.Chat.create_time.desc())).all()
+    chats = session.exec(
+        select(db.Chat)
+        .order_by(db.Chat.create_time.desc())
+        .offset(pagination.offset)
+        .limit(pagination.limit)
+    ).all()
     return chats
 
 
@@ -108,12 +116,20 @@ async def stream(
 
 @router.get("/{chat_id}/messages", tags=["message"])
 async def get_messages(
-    chat_id: str, session: Session = Depends(db.get_session)
+    chat_id: str,
+    pagination: Annotated[PaginationParameters, Query()],
+    session: Session = Depends(db.get_session),
 ) -> list[db.ChatMessage]:
-    """Get chat messages"""
+    """
+    Get chat messages.
+    Messages are returned from the newest to the oldest;
+    in this way it is possible limit the history to the most recent N messages.
+    """
     messages = session.exec(
         select(db.ChatMessage)
         .where(db.ChatMessage.chat_id == chat_id)
-        .order_by(db.ChatMessage.create_time)
+        .order_by(db.ChatMessage.create_time.desc())
+        .offset(pagination.offset)
+        .limit(pagination.limit)
     ).all()
     return messages

@@ -36,7 +36,9 @@ def select_chat(chat_id=None) -> None:
     if chat_id is not None:
         st.session_state.chat = st.session_state.chats[chat_id]
         history = client.get(f"/chats/{chat_id}/messages").json()
-        st.session_state.history = [db.ChatMessage.model_validate(h) for h in history]
+        st.session_state.history = [
+            db.ChatMessage.model_validate(h) for h in history[::-1]
+        ]
         st.session_state.title = st.session_state.chat.title or "New Chat"
     else:
         st.session_state.chat = None
