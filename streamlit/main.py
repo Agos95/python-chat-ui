@@ -40,7 +40,8 @@ with st.sidebar:
     )
     with st.container(key=CHAT_LIST_KEY):
         for chat in st.session_state.chats.values():
-            col_title, col_delete = st.columns([0.975, 0.02])
+            # col_title, col_delete = st.columns([0.975, 0.02])
+            col_title, col_edit, _, col_delete = st.columns([50, 5, 1, 5])
             with col_title:
                 st.button(
                     chat.title or "New Chat",
@@ -48,6 +49,17 @@ with st.sidebar:
                     use_container_width=True,
                     on_click=ch.select_chat,
                     kwargs={"chat_id": chat.id},
+                )
+            with col_edit:
+                st.button(
+                    "",
+                    help="Edit",
+                    on_click=ch.set_title,
+                    kwargs={"chat_id": chat.id},
+                    icon=":material/edit:",
+                    key=f"edit_{chat.id}",
+                    use_container_width=True,
+                    type="tertiary",
                 )
             with col_delete:
                 st.button(
@@ -60,6 +72,7 @@ with st.sidebar:
                     use_container_width=True,
                     type="tertiary",
                 )
+
 
 # custom CSS for chat list
 st.html(f"""

@@ -3,7 +3,8 @@ import logging
 import random
 import string
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query
+
+from fastapi import APIRouter, Body, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
@@ -70,6 +71,20 @@ async def create_chat(
 async def get_chat(chat_id: str, session: Session = Depends(db.get_session)) -> db.Chat:
     """Get single chat (without messages)"""
     chat = session.exec(select(db.Chat).where(db.Chat.id == chat_id)).one()
+    return chat
+
+
+@router.put("/{chat_id}")
+async def edit_chat_title(
+    chat_id: str,
+    title: Annotated[str, Body(embed=True)],
+    session: Session = Depends(db.get_session),
+) -> db.Chat:
+    chat = session.exec(select(db.Chat).where(db.Chat.id == chat_id)).one()
+    chat.title = title
+    session.add(chat)
+    session.commit()
+    session.refresh(chat)
     return chat
 
 
