@@ -5,11 +5,12 @@ import schema
 
 import streamlit as st
 from app.database import database as db
+from settings import backend_settings, ui_settings
 
 
 @st.cache_resource
 def get_httpx_client():
-    return httpx.Client(base_url="http://localhost:8000", timeout=600)
+    return httpx.Client(base_url=backend_settings.BASE_URL, timeout=600)
 
 
 client = get_httpx_client()
@@ -17,6 +18,7 @@ client = get_httpx_client()
 
 @st.dialog("Edit Chat Title")
 def set_title(chat_id: str):
+    """Set chat title"""
     if title := st.text_input("New Title"):
         client.put(f"/chats/{chat_id}", json={"title": title}).json()
         get_chats()
@@ -26,6 +28,7 @@ def set_title(chat_id: str):
 
 
 def create_chat() -> None:
+    """Create new chat"""
     response = client.post("/chats").json()
     chat = db.Chat.model_validate(response)
     st.session_state.chats = {chat.id: chat} | st.session_state.chats
@@ -49,11 +52,13 @@ def select_chat(chat_id=None) -> None:
         st.session_state.history = [
             db.ChatMessage.model_validate(h) for h in history[::-1]
         ]
-        st.session_state.title = st.session_state.chat.title or "New Chat"
+        st.session_state.title = (
+            st.session_state.chat.title or ui_settings.DEFAULT_CHAT_TITLE
+        )
     else:
         st.session_state.chat = None
         st.session_state.history = None
-        st.session_state.title = "Chat App"
+        st.session_state.title = ui_settings.APP_TITLE
     return
 
 
@@ -115,6 +120,7 @@ def delete_message(message_id: str) -> None:
 
 
 def streaming(chat_id: str, message: str):
+    """Stream response"""
     with client.stream(
         "POST",
         f"/chats/{chat_id}/stream",

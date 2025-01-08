@@ -1,11 +1,18 @@
-import streamlit as st
+import schema
+from settings import ui_settings
 
-st.set_page_config(page_title="Chat App", page_icon=":robot_face:", layout="centered")
+import streamlit as st
+from app.database import database as db
+
+# this must be run before any other streamlit command
+# even if in other files
+st.set_page_config(
+    page_title=ui_settings.APP_TITLE,
+    page_icon=ui_settings.APP_FAVICON,
+    layout="centered",
+)
 
 import chat as ch  # noqa: E402
-import schema  # noqa: E402
-
-from app.database import database as db  # noqa: E402
 
 # ===============
 # == STREAMLIT ==
@@ -16,7 +23,7 @@ ST_PRIMARY_COLOR = st.get_option("theme.primaryColor")
 
 
 if "title" not in st.session_state:
-    st.session_state.title = "Chat App"
+    st.session_state.title = ui_settings.APP_TITLE
 
 st.subheader(st.session_state.title, divider="red")
 
@@ -40,7 +47,6 @@ with st.sidebar:
     )
     with st.container(key=CHAT_LIST_KEY):
         for chat in st.session_state.chats.values():
-            # col_title, col_delete = st.columns([0.975, 0.02])
             col_title, col_edit, _, col_delete = st.columns([50, 5, 1, 5])
             with col_title:
                 st.button(
