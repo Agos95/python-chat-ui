@@ -20,7 +20,7 @@ client = get_httpx_client()
 def set_title(chat_id: str):
     """Set chat title"""
     if title := st.text_input("New Title"):
-        client.put(f"/chats/{chat_id}", json={"title": title}).json()
+        client.patch(f"/chats/{chat_id}", json={"title": title}).json()
         get_chats()
         if st.session_state.chat.id == chat_id:
             select_chat(chat_id)

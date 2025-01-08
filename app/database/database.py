@@ -1,12 +1,15 @@
+import asyncio
 import json
 import uuid
 from datetime import datetime, timezone
 from enum import StrEnum, auto
 
-from sqlmodel import Field, Relationship, Session, SQLModel, create_engine
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 SQLITE_FILE = "database.db"
-SQLITE_URL = f"sqlite:///{SQLITE_FILE}"
+SQLITE_URL = f"sqlite+aiosqlite:///{SQLITE_FILE}"
 
 
 def utc_now():
@@ -46,22 +49,23 @@ class ChatMessage(Base, table=True):
     content: str | None = Field(None)
 
 
-engine = create_engine(SQLITE_URL, echo=True)
+engine = create_async_engine(SQLITE_URL, echo=True)
 
 
-def init_db():
-    SQLModel.metadata.create_all(engine)
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
 
-def get_session():
-    with Session(engine) as session:
+async def get_session():
+    async with AsyncSession(engine) as session:
         yield session
 
 
-def populate_db():
+async def populate_db():
     with open("conversations.json", "r") as f:
         conversations = json.load(f)
-    with Session(engine) as session:
+    async with AsyncSession(engine) as session:
         for i, conversation in enumerate(conversations):
             chat = Chat(title=f"Demo Chat {i+1}")
             chat.history = [
@@ -73,9 +77,9 @@ def populate_db():
                 for message in conversation
             ]
             session.add(chat)
-        session.commit()
+        await session.commit()
 
 
 if __name__ == "__main__":
-    init_db()
-    populate_db()
+    asyncio.run(init_db())
+    asyncio.run(populate_db())

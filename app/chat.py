@@ -6,7 +6,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Query
 from fastapi.responses import StreamingResponse
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from .database import database as db
 from .schema import ChatMessageSchema, PaginationParameters
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/chats", tags=["chat"])
 LETTERS = list(string.ascii_letters + string.digits)
 
 
-async def get_response(message: str, chat_id: str, session: Session):
+async def get_response(message: str, chat_id: str, session: AsyncSession):
     # here you would call your LLM to get the response
     response = ""
     await asyncio.sleep(2)
@@ -37,76 +38,83 @@ async def get_response(message: str, chat_id: str, session: Session):
     for m in messages:
         session.add(m)
     logger.info("Committing messages to db")
-    session.commit()
+    await session.commit()
 
 
 @router.get("")
 async def get_chats(
     pagination: Annotated[PaginationParameters, Query()],
-    session: Session = Depends(db.get_session),
+    session: AsyncSession = Depends(db.get_session),
 ) -> list[db.Chat]:
     """Get list of Chats."""
-    chats = session.exec(
+    chats = await session.exec(
         select(db.Chat)
         .order_by(db.Chat.create_time.desc())
         .offset(pagination.offset)
         .limit(pagination.limit)
-    ).all()
+    )
+    chats = chats.all()
     return chats
 
 
 @router.post("")
 async def create_chat(
-    title: str | None = None, session: Session = Depends(db.get_session)
+    title: str | None = None, session: AsyncSession = Depends(db.get_session)
 ) -> db.Chat:
     """Get list of Chats."""
     chat = db.Chat(title=title)
     session.add(chat)
-    session.commit()
-    session.refresh(chat)
+    await session.commit()
+    await session.refresh(chat)
     return chat
 
 
 @router.get("/{chat_id}")
-async def get_chat(chat_id: str, session: Session = Depends(db.get_session)) -> db.Chat:
+async def get_chat(
+    chat_id: str, session: AsyncSession = Depends(db.get_session)
+) -> db.Chat:
     """Get single chat (without messages)"""
-    chat = session.exec(select(db.Chat).where(db.Chat.id == chat_id)).one()
+    chat = await session.exec(select(db.Chat).where(db.Chat.id == chat_id))
+    chat = chat.one()
     return chat
 
 
-@router.put("/{chat_id}")
+@router.patch("/{chat_id}")
 async def edit_chat_title(
     chat_id: str,
     title: Annotated[str, Body(embed=True)],
-    session: Session = Depends(db.get_session),
+    session: AsyncSession = Depends(db.get_session),
 ) -> db.Chat:
-    chat = session.exec(select(db.Chat).where(db.Chat.id == chat_id)).one()
+    chat = await session.exec(select(db.Chat).where(db.Chat.id == chat_id))
+    chat = chat.one()
     chat.title = title
     session.add(chat)
-    session.commit()
-    session.refresh(chat)
+    await session.commit()
+    await session.refresh(chat)
     return chat
 
 
 @router.delete("/{chat_id}")
-def delete_chat(chat_id: str, session: Session = Depends(db.get_session)):
+async def delete_chat(chat_id: str, session: AsyncSession = Depends(db.get_session)):
     """Delete chat"""
-    chat = session.exec(select(db.Chat).where(db.Chat.id == chat_id))
+    chat = await session.exec(select(db.Chat).where(db.Chat.id == chat_id))
     chat = chat.one()
-    session.delete(chat)
-    session.commit()
+    await session.delete(chat)
+    await session.commit()
     return
 
 
 @router.post("/{chat_id}")
 async def chat(
-    chat_id: str, message: ChatMessageSchema, session: Session = Depends(db.get_session)
+    chat_id: str,
+    message: ChatMessageSchema,
+    session: AsyncSession = Depends(db.get_session),
 ) -> ChatMessageSchema:
     """Post a message to chat and get the response"""
     response = "".join(
         [
             chunk
-            for chunk in get_response(
+            async for chunk in get_response(
                 message=message.content, chat_id=chat_id, session=session
             )
         ]
@@ -116,7 +124,9 @@ async def chat(
 
 @router.post("/{chat_id}/stream")
 async def stream(
-    chat_id: str, message: ChatMessageSchema, session: Session = Depends(db.get_session)
+    chat_id: str,
+    message: ChatMessageSchema,
+    session: AsyncSession = Depends(db.get_session),
 ) -> StreamingResponse:
     """Post a message to chat and get the response as stream"""
 
@@ -133,18 +143,19 @@ async def stream(
 async def get_messages(
     chat_id: str,
     pagination: Annotated[PaginationParameters, Query()],
-    session: Session = Depends(db.get_session),
+    session: AsyncSession = Depends(db.get_session),
 ) -> list[db.ChatMessage]:
     """
     Get chat messages.
     Messages are returned from the newest to the oldest;
     in this way it is possible limit the history to the most recent N messages.
     """
-    messages = session.exec(
+    messages = await session.exec(
         select(db.ChatMessage)
         .where(db.ChatMessage.chat_id == chat_id)
         .order_by(db.ChatMessage.create_time.desc())
         .offset(pagination.offset)
         .limit(pagination.limit)
-    ).all()
+    )
+    messages = messages.all()
     return messages
