@@ -54,6 +54,7 @@ with st.sidebar:
                     type="tertiary",
                     use_container_width=True,
                     on_click=ch.select_chat,
+                    key=f"{chat.id}",
                     kwargs={"chat_id": chat.id},
                 )
             with col_edit:
