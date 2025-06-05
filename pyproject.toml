@@ -9,6 +9,7 @@ dependencies = [
     "fastapi>=0.115.12",
     "gradio>=5.33.0",
     "pydantic-settings>=2.9.1",
+    "reflex>=0.7.14",
     "sqlmodel>=0.0.24",
     "streamlit>=1.45.1",
     "uvicorn[standard]>=0.34.3",

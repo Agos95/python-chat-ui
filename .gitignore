@@ -1,3 +1,6 @@
+assets/external/
+.web
+.states
 # database
 conversations.json
 *.db

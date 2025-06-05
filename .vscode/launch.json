@@ -13,7 +13,7 @@
                 "app.main:app",
                 "--reload",
                 "--reload-exclude",
-                "streamlit_ui/*",
+                "*_ui/*",
             ],
             "jinja": true,
         },
@@ -27,6 +27,15 @@
                 "streamlit_ui/main.py",
                 "--server.runOnSave",
                 "true"
+            ]
+        },
+        {
+            "name": "Reflex",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "reflex",
+            "args": [
+                "run"
             ]
         },
         {
