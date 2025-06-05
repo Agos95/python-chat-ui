@@ -13,7 +13,7 @@
                 "app.main:app",
                 "--reload",
                 "--reload-exclude",
-                "streamlit/*",
+                "streamlit_ui/*",
             ],
             "jinja": true,
         },
@@ -24,7 +24,7 @@
             "module": "streamlit",
             "args": [
                 "run",
-                "streamlit/main.py",
+                "streamlit_ui/main.py",
                 "--server.runOnSave",
                 "true"
             ]
@@ -35,7 +35,7 @@
             "request": "launch",
             "program": ".venv/bin/gradio",
             "args": [
-                "gradio/main.py"
+                "gradio_ui/main.py"
             ],
             "console": "integratedTerminal"
         },
