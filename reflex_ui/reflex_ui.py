@@ -1,35 +1,71 @@
 """Welcome to Reflex! This file outlines the steps to create a basic app."""
 
+import json
+
 import reflex as rx
 
+# from app.main import app as backend_app
+from reflex_ui.schema import ChatMessageSchema
 from rxconfig import config
+
+from .sidebar import sidebar
+
+with open("conversations.json", "r") as f:
+    _CHAT = json.load(f)[0]
 
 
 class State(rx.State):
-    """The app state."""
+    chat: list[ChatMessageSchema] = _CHAT
+
+
+def chat_message(message: ChatMessageSchema) -> rx.Component:
+    common_style = dict(
+        margin_y="0.5em",
+        border_radius="10px",
+        padding="1em",
+        display="inline-block",
+    )
+
+    def ai_message(content: str) -> rx.Component:
+        style = common_style | dict(
+            text_align="left",
+            margin_right="15%",
+            background_color=rx.color("accent", 6),
+        )
+        return rx.box(
+            rx.text(content, style=style),
+            text_align="left",
+        )
+
+    def human_message(content: str) -> rx.Component:
+        style = common_style | dict(
+            text_align="right",
+            margin_left="15%",
+            background_color=rx.color("gray", 4),
+        )
+        return rx.box(
+            rx.text(content, style=style),
+            text_align="right",
+        )
+
+    return rx.cond(
+        message["role"] == "ai",
+        ai_message(message["content"]),
+        human_message(message["content"]),
+    )
 
 
 def index() -> rx.Component:
-    # Welcome Page (Index)
-    return rx.container(
-        rx.color_mode.button(position="top-right"),
-        rx.vstack(
-            rx.heading("Welcome to Reflex!", size="9"),
-            rx.text(
-                "Get started by editing ",
-                rx.code(f"{config.app_name}/{config.app_name}.py"),
-                size="5",
+    return rx.flex(
+        sidebar(),
+        rx.container(
+            rx.flex(
+                rx.foreach(State.chat, chat_message),
+                direction="column",
             ),
-            rx.link(
-                rx.button("Check out our docs!"),
-                href="https://reflex.dev/docs/getting-started/introduction/",
-                is_external=True,
-            ),
-            spacing="5",
-            justify="center",
-            min_height="85vh",
         ),
-        rx.logo(),
+        direction="row",
+        align="stretch",
     )
 
 
